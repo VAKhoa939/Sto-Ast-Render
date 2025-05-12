@@ -9,7 +9,19 @@ const { GoogleGenerativeAI } = require('@google/generative-ai');
 const firebaseAdmin = require('firebase-admin');
 
 // Firebase Admin SDK Initialization
-const serviceAccount = require('./firebase-admin-sdk.json');
+const serviceAccount = {
+  "type": "service_account",
+  "project_id": process.env.PROJECT_ID,
+  "private_key_id": process.env.PRIVATE_KEY_ID,
+  "private_key": process.env.PRIVATE_KEY.replace(/\\n/g, '\n'),
+  "client_email": process.env.CLIENT_EMAIL,
+  "client_id": process.env.CLIENT_ID,
+  "auth_uri": process.env.AUTH_URI,
+  "token_uri": process.env.TOKEN_URI,
+  "auth_provider_x509_cert_url": process.env.AUTH_PROVIDER_X509_CERT_URL,
+  "client_x509_cert_url": process.env.CLIENT_X509_CERT_URL,
+  "universe_domain": process.env.UNIVERSE_DOMAIN
+}
 firebaseAdmin.initializeApp({
   credential: firebaseAdmin.credential.cert(serviceAccount),
   databaseURL: process.env.FIREBASE_DATABASE_URL,
@@ -22,11 +34,11 @@ const app = express();
 const PORT = 5000;
 
 // Gemini client setup
-const client = new GoogleGenerativeAI(process.env.REACT_APP_GEMINI_API_KEY);
+const client = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
 // Middleware
 app.use(cors({
-  origin: ['https://localhost:3000'],
+  origin: [process.env.FRONTEND_URL, 'https://localhost:3000'],
   credentials: true,
 }));
 
@@ -37,10 +49,10 @@ app.use(helmet({
   contentSecurityPolicy: {
     directives: {
       defaultSrc: ["'self'"],
-      scriptSrc: ["'self'", "https://localhost:3000", "https://apis.google.com", "https://www.gstatic.com"],
-      styleSrc: ["'self'", "https://localhost:3000"],
+      scriptSrc: ["'self'", process.env.FRONTEND_URL, "https://localhost:3000", "https://apis.google.com", "https://www.gstatic.com"],
+      styleSrc: ["'self'", process.env.FRONTEND_URL, "https://localhost:3000"],
       imgSrc: ["'self'", "data:", "https://firebasestorage.googleapis.com", "https://*.googleusercontent.com"],
-      connectSrc: ["'self'", "https://localhost:5000", "https://generativelanguage.googleapis.com", "http://localhost:3000"],
+      connectSrc: ["'self'", process.env.BACKEND_URL, "https://localhost:5000", "https://generativelanguage.googleapis.com", process.env.FRONTEND_URL, "http://localhost:3000"],
       fontSrc: ["'self'", "https://fonts.gstatic.com"],
       formAction: ["'self'"],
       objectSrc: ["'none'"],
