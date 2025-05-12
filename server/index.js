@@ -2,8 +2,6 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
-const https = require('https');
-const fs = require('fs');
 const path = require('path');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 const firebaseAdmin = require('firebase-admin');
@@ -221,13 +219,23 @@ app.put('/api/files/:userId/:fileId', authenticateToken, async (req, res) => {
   }
 });
 
+if (process.env.HTTPS === 'true') {
+  const https = require('https');
+  const fs = require('fs');
 
-// --- HTTPS Server ---
-const options = {
-  key: fs.readFileSync(path.join(__dirname, 'key.pem')),
-  cert: fs.readFileSync(path.join(__dirname, 'cert.pem')),
-};
+  // --- HTTPS Server ---
+  const options = {
+    key: fs.readFileSync(path.join(__dirname, 'key.pem')),
+    cert: fs.readFileSync(path.join(__dirname, 'cert.pem')),
+  };
 
-https.createServer(options, app).listen(PORT, () => {
-  console.log(`✅ HTTPS server running at https://localhost:${PORT}`);
-});
+  https.createServer(options, app).listen(PORT, () => {
+    console.log(`✅ HTTPS server running at https://localhost:${PORT}`);
+  });
+} else {
+  // --- HTTP Server ---
+  app.listen(PORT, () => {
+    console.log(`✅ HTTP server running at http://localhost:${PORT}`);
+  });
+}
+
