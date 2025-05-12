@@ -85,7 +85,7 @@ async function authenticateToken(req, res, next) {
 // --- AI Routes ---
 
 // Gemini text or image processing
-app.post('/ai', authenticateToken, async (req, res) => {
+app.post('/api/ai', authenticateToken, async (req, res) => {
   const { input, task, isImage = false, mimeType = "image/jpeg" } = req.body;
   if (!input || !task) return res.status(400).json({ error: 'Missing input or task' });
 
@@ -99,7 +99,7 @@ app.post('/ai', authenticateToken, async (req, res) => {
 });
 
 // Simple chatbot endpoint
-app.post('/chatbot', authenticateToken, async (req, res) => {
+app.post('/api/chatbot', authenticateToken, async (req, res) => {
   const { input } = req.body;
   if (!input) return res.status(400).json({ error: 'Input required' });
 
