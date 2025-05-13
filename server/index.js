@@ -2,69 +2,52 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
+const https = require('https');
+const fs = require('fs');
 const path = require('path');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
-const firebaseAdmin = require('firebase-admin');
 
-// Firebase Admin SDK Initialization
-const serviceAccount = {
-  "type": "service_account",
-  "project_id": process.env.PROJECT_ID,
-  "private_key_id": process.env.PRIVATE_KEY_ID,
-  "private_key": process.env.PRIVATE_KEY.replace(/\\n/g, '\n'),
-  "client_email": process.env.CLIENT_EMAIL,
-  "client_id": process.env.CLIENT_ID,
-  "auth_uri": process.env.AUTH_URI,
-  "token_uri": process.env.TOKEN_URI,
-  "auth_provider_x509_cert_url": process.env.AUTH_PROVIDER_X509_CERT_URL,
-  "client_x509_cert_url": process.env.CLIENT_X509_CERT_URL,
-  "universe_domain": process.env.UNIVERSE_DOMAIN
-}
-firebaseAdmin.initializeApp({
-  credential: firebaseAdmin.credential.cert(serviceAccount),
-  databaseURL: process.env.FIREBASE_DATABASE_URL,
-  storageBucket: process.env.FIREBASE_STORAGE_BUCKET,
-});
+// Import Firebase helper
+const { auth, firestore: db, ref, remove, update, addFolder, deleteFolder } = require('./firebase-admin');
 
-const auth = firebaseAdmin.auth();
-const db = firebaseAdmin.firestore();
+// Gemini AI setup
+const client = new GoogleGenerativeAI(process.env.REACT_APP_GEMINI_API_KEY);
+
+// Express setup
 const app = express();
 const PORT = 5000;
 
-// Gemini client setup
-const client = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+// Allow larger request bodies
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // Middleware
 app.use(cors({
-  origin: [process.env.FRONTEND_URL, 'https://localhost:3000'],
+  origin: ['https://localhost:3000', 'http://localhost:3000'],
   credentials: true,
 }));
-
 app.use(express.json());
-
 app.use(helmet({
   xFrameOptions: { action: "sameorigin" },
   contentSecurityPolicy: {
     directives: {
       defaultSrc: ["'self'"],
-      scriptSrc: ["'self'", process.env.FRONTEND_URL, "https://localhost:3000", "https://apis.google.com", "https://www.gstatic.com"],
-      styleSrc: ["'self'", process.env.FRONTEND_URL, "https://localhost:3000"],
+      scriptSrc: ["'self'", "https://localhost:3000", "https://apis.google.com", "https://www.gstatic.com"],
+      styleSrc: ["'self'", "https://localhost:3000"],
       imgSrc: ["'self'", "data:", "https://firebasestorage.googleapis.com", "https://*.googleusercontent.com"],
-      connectSrc: ["'self'", process.env.BACKEND_URL, "https://localhost:5000", "https://generativelanguage.googleapis.com", process.env.FRONTEND_URL, "http://localhost:3000"],
+      connectSrc: ["'self'", "https://localhost:5000", "https://generativelanguage.googleapis.com", "http://localhost:3000"],
       fontSrc: ["'self'", "https://fonts.gstatic.com"],
       formAction: ["'self'"],
+      frameSrc: ["'self'", "https://auth-development-f6d07.firebaseapp.com", "https://apis.google.com"], // Allowing framing of Google Auth
       objectSrc: ["'none'"],
       baseUri: ["'self'"],
       frameAncestors: ["'self'"],
     },
   },
 }));
-
 app.disable('x-powered-by');
 
 // --- AI Routes ---
-
-// Gemini text or image processing
 app.post('/api/ai', async (req, res) => {
   const { input, task, isImage = false, mimeType = "image/jpeg" } = req.body;
   if (!input || !task) return res.status(400).json({ error: 'Missing input or task' });
@@ -78,7 +61,6 @@ app.post('/api/ai', async (req, res) => {
   }
 });
 
-// Simple chatbot endpoint
 app.post('/api/chatbot', async (req, res) => {
   const { input } = req.body;
   if (!input) return res.status(400).json({ error: 'Input required' });
@@ -93,25 +75,77 @@ app.post('/api/chatbot', async (req, res) => {
     res.status(500).json({ error: 'Chatbot failed' });
   }
 });
+//addFolder function
+app.post('/api/folders', async (req, res) => {
+  try {
+    const { userId, folderName, parentId, pathArr } = req.body;
+    console.log("Received data:", { userId, folderName, parentId, pathArr });
+    if (!userId || !folderName) {
+      return res.status(400).json({ error: 'Missing userId or folderName' });
+    }
+    // Call the addFolder function from firebase-admin.js
+    const folderDoc = await addFolder(folderName, userId, parentId, pathArr);
 
-// AI logic
-async function runAI(input, task, isImage = false, mimeType = "image/jpeg") {
-  const model = client.getGenerativeModel({ model: isImage ? "gemini-pro-vision" : "gemini-2.0-flash" });
-  const prompt = isImage
-    ? (task === "describe" ? "Describe the image." : "Identify objects in the image.")
-    : (task === "summarize" ? `${input}\nSummarize.` : `${input}\nExtract keywords.`);
+    console.log("Folder added:", folderDoc.id);
 
-  if (isImage) {
-    return (await model.generateContent({
-      contents: [{ parts: [prompt, { inlineData: { mimeType, data: input } }] }]
-    })).response.text();
-  } else {
-    return (await model.generateContent(prompt)).response.text();
+    res.status(200).json({ success: true, folderId: folderDoc.id });
+  } catch (error) {
+    console.error('Error adding folder:', error);
+    res.status(500).json({ error: 'Failed to add folder' });
   }
-}
+});
+//deleteFolder function
+app.post('/api/folders/delete', async (req, res) => {
+  const { folderId } = req.body;
+
+  if (!folderId) {
+    return res.status(400).json({ error: 'Missing folderId' });
+  }
+
+  try {
+    // Call deleteFolder function that you wrote earlier
+    await deleteFolder(folderId);
+    res.status(200).json({ success: true, message: 'Folder deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting folder:', error);
+    res.status(500).json({ error: 'Failed to delete folder' });
+  }
+});
+
+
+// TODO: addFile function
+app.post("/api/upload-file", async (req, res) => {
+  const { name, content, path, folderId } = req.body;
+  const user = req.user;
+  console.log("Received body:", req.body);
+  if (!name || !content || !path || !folderId) {
+    return res.status(400).json({ error: "Missing required fields" });
+  }
+
+  try {
+    const filePath = `files/${user.uid}/${path}`;
+
+    await admin
+      .database()
+      .ref(filePath)
+      .set({
+        name,
+        content, // Base64 string
+        path,
+        folderId,
+        userId: user.uid,
+        createdAt: admin.database.ServerValue.TIMESTAMP,
+      });
+
+    res.status(200).json({ message: "File uploaded successfully" });
+  } catch (err) {
+    console.error("Error uploading file to Firebase:", err);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
 
 // --- Folder/Files API ---
-
 app.get('/api/folder/:folderId', async (req, res) => {
   try {
     const doc = await db.collection('folders').doc(req.params.folderId).get();
@@ -123,32 +157,23 @@ app.get('/api/folder/:folderId', async (req, res) => {
   }
 });
 
-app.post('/api/folders', async (req, res) => {
+app.get('/api/folders', async (req, res) => {
+  const { parentId, userId } = req.query;
+  if (!userId) return res.status(400).json({ error: "Missing userId" });
+
   try {
-    const { name, userId, parentId, path } = req.body;
+    const foldersRef = db.collection('folders')
+      .where('userId', '==', userId)
+      .where('parentId', '==', parentId || null);
 
-    if (!name || !userId || !parentId || !path) {
-      return res.status(400).json({ error: 'Missing required fields' });
-    }
-
-    const folderRef = db.collection('folders').doc(); // New folder document
-    const folderData = {
-      name,
-      userId,
-      parentId,
-      path,
-      createdAt: firebaseAdmin.firestore.FieldValue.serverTimestamp(),
-    };
-
-    await folderRef.set(folderData); // Save folder to Firestore
-
-    res.status(201).json({ folder: { id: folderRef.id, ...folderData } });
+    const snapshot = await foldersRef.get();
+    const folders = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    res.json({ folders });
   } catch (error) {
-    console.error('Error creating folder:', error.message);
-    res.status(500).json({ error: 'Failed to create folder' });
+    console.error("Error fetching folders:", error.message);
+    res.status(500).json({ error: "Failed to fetch folders" });
   }
 });
-
 
 app.get('/api/files', async (req, res) => {
   const { folderPath, userId } = req.query;
@@ -167,12 +192,11 @@ app.get('/api/files', async (req, res) => {
   }
 });
 
-// DELETE a file
 app.delete('/api/files/:userId/:fileId', async (req, res) => {
   const { userId, fileId } = req.params;
 
   try {
-    await rtdb.ref(`files/${userId}/${fileId}`).remove();
+    await remove(`files/${userId}/${fileId}`);
     res.json({ success: true });
   } catch (error) {
     console.error("Error deleting file:", error);
@@ -180,7 +204,6 @@ app.delete('/api/files/:userId/:fileId', async (req, res) => {
   }
 });
 
-// UPDATE a file
 app.put('/api/files/:userId/:fileId', async (req, res) => {
   const { userId, fileId } = req.params;
   const { name, content } = req.body;
@@ -190,7 +213,7 @@ app.put('/api/files/:userId/:fileId', async (req, res) => {
   }
 
   try {
-    await rtdb.ref(`files/${userId}/${fileId}`).update({
+    await update(`files/${userId}/${fileId}`, {
       name: name.trim(),
       content,
     });
@@ -201,23 +224,28 @@ app.put('/api/files/:userId/:fileId', async (req, res) => {
   }
 });
 
-if (process.env.HTTPS === 'true') {
-  const https = require('https');
-  const fs = require('fs');
+// --- AI core logic ---
+async function runAI(input, task, isImage = false, mimeType = "image/jpeg") {
+  const model = client.getGenerativeModel({ model: isImage ? "gemini-pro-vision" : "gemini-2.0-flash" });
+  const prompt = isImage
+    ? (task === "describe" ? "Describe the image." : "Identify objects in the image.")
+    : (task === "summarize" ? `${input}\nSummarize.` : `${input}\nExtract keywords.`);
 
-  // --- HTTPS Server ---
-  const options = {
-    key: fs.readFileSync(path.join(__dirname, 'key.pem')),
-    cert: fs.readFileSync(path.join(__dirname, 'cert.pem')),
-  };
-
-  https.createServer(options, app).listen(PORT, () => {
-    console.log(`✅ HTTPS server running at https://localhost:${PORT}`);
-  });
-} else {
-  // --- HTTP Server ---
-  app.listen(PORT, () => {
-    console.log(`✅ HTTP server running at http://localhost:${PORT}`);
-  });
+  if (isImage) {
+    return (await model.generateContent({
+      contents: [{ parts: [prompt, { inlineData: { mimeType, data: input } }] }]
+    })).response.text();
+  } else {
+    return (await model.generateContent(prompt)).response.text();
+  }
 }
 
+// --- HTTPS Server ---
+const options = {
+  key: fs.readFileSync(path.join(__dirname, 'key.pem')),
+  cert: fs.readFileSync(path.join(__dirname, 'cert.pem')),
+};
+
+https.createServer(options, app).listen(PORT, () => {
+  console.log(`✅ HTTPS server running at https://localhost:${PORT}`);
+});
