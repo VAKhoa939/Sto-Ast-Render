@@ -1,6 +1,6 @@
-import { FileObject } from "./FileObject";
+import { FileClass } from "./FileClass";
 
-export class FolderObject {
+export class FolderClass {
   constructor(id, name, path) {
     this.id = id;
     this.name = name;
@@ -10,7 +10,7 @@ export class FolderObject {
   }
 
   addFile(file) {
-    if (file instanceof FileObject) {
+    if (file instanceof FileClass) {
       this.childFile.push(file);
     } else {
       throw new Error("Only instances of FileObject can be added.");
@@ -18,7 +18,7 @@ export class FolderObject {
   }
 
   addFolder(folder) {
-    if (folder instanceof FolderObject) {
+    if (folder instanceof FolderClass) {
       this.childFolder.push(folder);
     } else {
       throw new Error("Only instances of Folder can be added.");
@@ -27,15 +27,15 @@ export class FolderObject {
 
   //Add this static method to safely recreate Folder instances
   static fromObject(obj) {
-    const folder = new FolderObject(obj.id, obj.name, obj.path);
+    const folder = new FolderClass(obj.id, obj.name, obj.path);
     if (Array.isArray(obj.childFile)) {
       folder.childFile = obj.childFile.map(
-        (f) => Object.assign(new FileObject(), f)
+        (f) => Object.assign(new FileClass(), f)
       );
     }
     if (Array.isArray(obj.childFolder)) {
       folder.childFolder = obj.childFolder.map(
-        (f) => FolderObject.fromObject(f) // recursively convert
+        (f) => FolderClass.fromObject(f) // recursively convert
       );
     }
     return folder;

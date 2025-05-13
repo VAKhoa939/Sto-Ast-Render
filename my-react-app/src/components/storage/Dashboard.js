@@ -9,7 +9,7 @@ import FolderBreadcrumbs from "./FolderBreadcrumbs";
 import AddFileButton from "./AddFileButton";
 import File from "./File";
 import Chatbot from "./ChatBot";
-import { FolderObject as FolderClass } from "../objects/FolderObject"; // import renamed to avoid naming conflict
+import { FolderClass } from "../classes/FolderClass";
 
 export default function Dashboard() {
   const { folderId } = useParams();

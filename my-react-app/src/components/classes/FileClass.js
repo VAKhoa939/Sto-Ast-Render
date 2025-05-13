@@ -1,14 +1,13 @@
 import { getDatabase, ref, remove, update } from "firebase/database";
 
-export class FileObject {
-  constructor({ id, name, content, path, createdAt, user, apiUrl = `${process.env.BACKEND_URL}/api/ai` }) {
+export class FileClass {
+  constructor({ id, name, content, path, createdAt, user }) {
     this.id = id;
     this.name = name;
     this.content = content;
     this.path = path;
     this.createdAt = createdAt;
     this.user = user;
-    this.apiUrl = apiUrl;
     this.db = getDatabase();
   }
 
@@ -64,7 +63,7 @@ export class FileObject {
 
   async fetchAI(task, isImageRequest = false) {
     try {
-      const response = await fetch(this.apiUrl, {
+      const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/ai`, {
         method: "POST",
         headers: { "Content-Type": "application/json", mode : "cors" },
         body: JSON.stringify({

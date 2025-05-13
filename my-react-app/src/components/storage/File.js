@@ -5,7 +5,7 @@ import { Modal, Button, Form } from "react-bootstrap";
 //import { ref, remove, update } from "../../../src/firebase";
 //import { getDatabase } from "firebase/database";
 import { useAuth } from "../../contexts/AuthContext";
-import { FileObject } from "../objects/FileObject";
+import { FileClass } from "../classes/FileClass";
 /* //old version delete
 const handleDeleteFirebase = async (fileId, currentUser) => {
   const db = getDatabase();
@@ -39,7 +39,7 @@ const handleUpdateFirebase = async (fileId, updatedName, updatedContent, current
 */
 export default function File({ file, onDelete, onUpdate }) {
   const { currentUser } = useAuth();
-  const fileObj = new FileObject({ ...file, user: currentUser });
+  const fileObj = new FileClass({ ...file, user: currentUser });
 
   const [showModal, setShowModal] = useState(false);
   const [fileContent, setFileContent] = useState(fileObj.decodeContent());

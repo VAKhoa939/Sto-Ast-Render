@@ -62,28 +62,10 @@ app.use(helmet({
 
 app.disable('x-powered-by');
 
-// Authentication middleware
-async function authenticateToken(req, res, next) {
-  const authHeader = req.headers.authorization;
-  if (!authHeader?.startsWith('Bearer ')) {
-    return res.status(401).json({ error: 'Missing or invalid Authorization header' });
-  }
-
-  const idToken = authHeader.split('Bearer ')[1];
-  try {
-    const decodedToken = await auth.verifyIdToken(idToken);
-    req.user = decodedToken;
-    next();
-  } catch (error) {
-    console.error('Token verification failed:', error.message);
-    res.status(401).json({ error: 'Unauthorized' });
-  }
-}
-
 // --- AI Routes ---
 
 // Gemini text or image processing
-app.post('/api/ai', authenticateToken, async (req, res) => {
+app.post('/api/ai', async (req, res) => {
   const { input, task, isImage = false, mimeType = "image/jpeg" } = req.body;
   if (!input || !task) return res.status(400).json({ error: 'Missing input or task' });
 
@@ -97,7 +79,7 @@ app.post('/api/ai', authenticateToken, async (req, res) => {
 });
 
 // Simple chatbot endpoint
-app.post('/api/chatbot', authenticateToken, async (req, res) => {
+app.post('/api/chatbot', async (req, res) => {
   const { input } = req.body;
   if (!input) return res.status(400).json({ error: 'Input required' });
 
@@ -130,7 +112,7 @@ async function runAI(input, task, isImage = false, mimeType = "image/jpeg") {
 
 // --- Folder/Files API ---
 
-app.get('/api/folder/:folderId', authenticateToken, async (req, res) => {
+app.get('/api/folder/:folderId', async (req, res) => {
   try {
     const doc = await db.collection('folders').doc(req.params.folderId).get();
     if (!doc.exists) return res.status(404).json({ error: 'Folder not found' });
@@ -141,7 +123,7 @@ app.get('/api/folder/:folderId', authenticateToken, async (req, res) => {
   }
 });
 
-app.post('/api/folders', authenticateToken, async (req, res) => {
+app.post('/api/folders', async (req, res) => {
   try {
     const { name, userId, parentId, path } = req.body;
 
@@ -168,7 +150,7 @@ app.post('/api/folders', authenticateToken, async (req, res) => {
 });
 
 
-app.get('/api/files', authenticateToken, async (req, res) => {
+app.get('/api/files', async (req, res) => {
   const { folderPath, userId } = req.query;
   if (!folderPath || !userId) return res.status(400).json({ error: 'Missing folderPath or userId' });
 
@@ -186,7 +168,7 @@ app.get('/api/files', authenticateToken, async (req, res) => {
 });
 
 // DELETE a file
-app.delete('/api/files/:userId/:fileId', authenticateToken, async (req, res) => {
+app.delete('/api/files/:userId/:fileId', async (req, res) => {
   const { userId, fileId } = req.params;
 
   try {
@@ -199,7 +181,7 @@ app.delete('/api/files/:userId/:fileId', authenticateToken, async (req, res) => 
 });
 
 // UPDATE a file
-app.put('/api/files/:userId/:fileId', authenticateToken, async (req, res) => {
+app.put('/api/files/:userId/:fileId', async (req, res) => {
   const { userId, fileId } = req.params;
   const { name, content } = req.body;
 
