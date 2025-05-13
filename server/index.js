@@ -11,7 +11,7 @@ const { GoogleGenerativeAI } = require('@google/generative-ai');
 const { auth, firestore: db, ref, remove, update, addFolder, deleteFolder } = require('./firebase-admin');
 
 // Gemini AI setup
-const client = new GoogleGenerativeAI(process.env.REACT_APP_GEMINI_API_KEY);
+const client = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
 // Express setup
 const app = express();
@@ -23,7 +23,7 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // Middleware
 app.use(cors({
-  origin: ['https://localhost:3000', 'http://localhost:3000'],
+  origin: ['https://localhost:3000', 'http://localhost:3000', process.env.FRONTEND_URL],
   credentials: true,
 }));
 app.use(express.json());
@@ -32,10 +32,10 @@ app.use(helmet({
   contentSecurityPolicy: {
     directives: {
       defaultSrc: ["'self'"],
-      scriptSrc: ["'self'", "https://localhost:3000", "https://apis.google.com", "https://www.gstatic.com"],
-      styleSrc: ["'self'", "https://localhost:3000"],
+      scriptSrc: ["'self'", process.env.FRONTEND_URL, "https://localhost:3000", "https://apis.google.com", "https://www.gstatic.com"],
+      styleSrc: ["'self'", process.env.FRONTEND_URL, "https://localhost:3000"],
       imgSrc: ["'self'", "data:", "https://firebasestorage.googleapis.com", "https://*.googleusercontent.com"],
-      connectSrc: ["'self'", "https://localhost:5000", "https://generativelanguage.googleapis.com", "http://localhost:3000"],
+      connectSrc: ["'self'", process.env.FRONTEND_URL, process.env.BACKEND_URL, "https://localhost:5000", "http://localhost:3000", "https://generativelanguage.googleapis.com"],
       fontSrc: ["'self'", "https://fonts.gstatic.com"],
       formAction: ["'self'"],
       frameSrc: ["'self'", "https://auth-development-f6d07.firebaseapp.com", "https://apis.google.com"], // Allowing framing of Google Auth
@@ -241,11 +241,22 @@ async function runAI(input, task, isImage = false, mimeType = "image/jpeg") {
 }
 
 // --- HTTPS Server ---
-const options = {
-  key: fs.readFileSync(path.join(__dirname, 'key.pem')),
-  cert: fs.readFileSync(path.join(__dirname, 'cert.pem')),
-};
+if (process.env.HTTPS === 'true') {
+  const https = require('https');
+  const fs = require('fs');
 
-https.createServer(options, app).listen(PORT, () => {
-  console.log(`✅ HTTPS server running at https://localhost:${PORT}`);
-});
+  // --- HTTPS Server ---
+  const options = {
+    key: fs.readFileSync(path.join(__dirname, 'key.pem')),
+    cert: fs.readFileSync(path.join(__dirname, 'cert.pem')),
+  };
+
+  https.createServer(options, app).listen(PORT, () => {
+    console.log(`✅ HTTPS server running at https://localhost:${PORT}`);
+  });
+} else {
+  // --- HTTP Server ---
+  app.listen(PORT, () => {
+    console.log(`✅ HTTP server running at http://localhost:${PORT}`);
+  });
+}

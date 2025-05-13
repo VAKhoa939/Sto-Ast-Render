@@ -37,7 +37,7 @@ export default function AddFolderButton({ currentFolder }) {
     }
 
     try {
-        const response = await fetch("https://localhost:5000/api/folders", {
+        const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/folders`, {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
