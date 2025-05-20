@@ -1,7 +1,14 @@
 import { useReducer, useEffect } from "react";
 import { useAuth } from "../contexts/AuthContext";
 import { database } from "../firebase";
-import { getDoc, doc, query, where, orderBy, onSnapshot } from "firebase/firestore";
+import {
+  getDoc,
+  doc,
+  query,
+  where,
+  orderBy,
+  onSnapshot,
+} from "firebase/firestore";
 import { realtimeDatabase } from "../firebase"; // Import Realtime Database
 import { ref, onValue } from "firebase/database";
 
@@ -46,17 +53,21 @@ function reducer(state, { type, payload }) {
 export function useFolder(folderId = null, folder = null) {
   const [state, dispatch] = useReducer(reducer, {
     folderId,
-    folder,  // Ensures a valid folder object
+    folder, // Ensures a valid folder object
     childFolders: [],
     childFiles: [],
   });
-  
+
   const { currentUser, getIdToken } = useAuth();
 
+  // --- Select folder ---
+  // This effect updates the selected folder in the state when the folderId or folder changes.
   useEffect(() => {
     dispatch({ type: ACTIONS.SELECT_FOLDER, payload: { folderId, folder } });
   }, [folderId, folder]);
 
+  // --- Fetch folder from Firestore ---
+  // This effect fetches the folder from Firestore when the folderId changes.
   useEffect(() => {
     if (folderId == null) {
       return dispatch({
@@ -67,7 +78,7 @@ export function useFolder(folderId = null, folder = null) {
 
     const folderRef = doc(database.folders, folderId); // Use correct reference to collection
     getDoc(folderRef)
-      .then(docSnapshot => {
+      .then((docSnapshot) => {
         if (docSnapshot.exists()) {
           dispatch({
             type: ACTIONS.UPDATE_FOLDER,
@@ -88,6 +99,8 @@ export function useFolder(folderId = null, folder = null) {
       });
   }, [folderId]);
 
+  // --- Fetch child folders from Firestore ---
+  // This effect fetches child folders from Firestore when the folderId or currentUser changes.
   useEffect(() => {
     // Construct the query for Firestore child folders
     const q = query(
@@ -98,18 +111,20 @@ export function useFolder(folderId = null, folder = null) {
     );
 
     // Set up the listener for real-time updates
-    const unsubscribe = onSnapshot(q, snapshot => {
+    const unsubscribe = onSnapshot(q, (snapshot) => {
       dispatch({
         type: ACTIONS.SET_CHILD_FOLDERS,
-        payload: { childFolders: snapshot.docs.map(database.formatDoc) }
+        payload: { childFolders: snapshot.docs.map(database.formatDoc) },
       });
     });
 
     // Cleanup the listener when the component unmounts or the folderId or currentUser changes
     return () => unsubscribe();
-
   }, [folderId, currentUser.uid]);
 
+  // --- Fetch files from Firebase Realtime Database ---
+  // This effect fetches files from Firebase Realtime Database when the folderId or currentUser changes.
+  // It listens for changes in the specified folder path and updates the state accordingly.
   useEffect(() => {
     // Ensure currentUser and folderId are available
     if (!currentUser?.uid) return;
@@ -118,7 +133,10 @@ export function useFolder(folderId = null, folder = null) {
     console.log("Folder ID:", folderId);
 
     // Check if we are dealing with the root folder (folderId is null)
-    const folderPath = folderId === null ? `files/${currentUser.uid}` : `files/${currentUser.uid}/${folderId}`;
+    const folderPath =
+      folderId === null
+        ? `files/${currentUser.uid}`
+        : `files/${currentUser.uid}/${folderId}`;
 
     // Reference to the Firebase Realtime Database location for files
     const filesRef = ref(realtimeDatabase, folderPath);
@@ -162,8 +180,10 @@ export function useFolder(folderId = null, folder = null) {
     return () => unsubscribe();
   }, [folderId, currentUser]);
 
+  // --- Fetch folders/files from the backend ---
+  // This effect fetches folders and files from the backend when the component mounts
+  // and when the folderId or currentUser changes.
   useEffect(() => {
-    // If the user is authenticated, fetch folders/files from the backend
     async function fetchFromBackend() {
       if (!currentUser) return;
 
@@ -171,12 +191,15 @@ export function useFolder(folderId = null, folder = null) {
       if (!token) return;
 
       // Construct the request for folders from backend
-      const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/folders?parentId=${folderId}&userId=${currentUser.uid}`, {
-        method: "GET",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      const response = await fetch(
+        `${process.env.REACT_APP_BACKEND_URL}/api/folders?parentId=${folderId}`,
+        {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
 
       const data = await response.json();
       if (data?.childFolders) {
@@ -195,7 +218,6 @@ export function useFolder(folderId = null, folder = null) {
     }
 
     fetchFromBackend();
-
   }, [folderId, currentUser, getIdToken]);
 
   return state;

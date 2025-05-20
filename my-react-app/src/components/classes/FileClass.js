@@ -61,11 +61,14 @@ export class FileClass {
     }
   }
 
-  async fetchAI(task, isImageRequest = false) {
+  async fetchAI(token, task, isImageRequest = false) {
     try {
       const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/ai`, {
         method: "POST",
-        headers: { "Content-Type": "application/json", mode : "cors" },
+        headers: { 
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json", 
+        },
         body: JSON.stringify({
           input: isImageRequest ? this.content : this.decodeContent(),
           task,

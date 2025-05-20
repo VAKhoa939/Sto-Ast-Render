@@ -1,10 +1,10 @@
 import React, { useState } from "react";
 import { Container, Form } from "react-bootstrap";
 import { useFolder } from "../../hooks/useFolder";
-import AddFolderButton from "./AddFolderButton";
+import CreateFolderButton from "./CreateFolderButton";
 import Folder from "./Folder";
 import Navbar from "./Navbar";
-import { useParams} from "react-router-dom";
+import { useParams } from "react-router-dom";
 import FolderBreadcrumbs from "./FolderBreadcrumbs";
 import AddFileButton from "./AddFileButton";
 import File from "./File";
@@ -32,7 +32,8 @@ export default function Dashboard() {
     );
   };
 
-  const normalize = (str) => (typeof str === "string" ? str.toLowerCase().trim() : "");
+  const normalize = (str) =>
+    typeof str === "string" ? str.toLowerCase().trim() : "";
 
   // Check for tag search (#tag)
   const isTagMatch = (item) => {
@@ -57,15 +58,6 @@ export default function Dashboard() {
     return normalize(name).includes(normalize(cleanQuery));
   };
 
-  const handleDelete = (fileToDelete) => {
-    // You might need to implement this according to your backend
-    console.log("Delete:", fileToDelete);
-  };
-
-  const handleUpdate = (updatedFile) => {
-    console.log("Update:", updatedFile);
-  };
-
   return (
     <>
       <Navbar />
@@ -73,32 +65,39 @@ export default function Dashboard() {
         <div className="d-flex align-items-center justify-content-between flex-wrap">
           <div className="d-flex align-items-center flex-grow-1">
             <FolderBreadcrumbs currentFolder={folder} />
-            <AddFolderButton currentFolder={folder} />
+            <CreateFolderButton currentFolder={folder} />
             <AddFileButton currentFolder={folder} />
+            <Form.Control
+              type="text"
+              placeholder="🔍 Search files or folders... (#tag, type:pdf)"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              style={{ maxWidth: 300, marginTop: 8 }}
+            />
           </div>
-          <Form.Control
-            type="text"
-            placeholder="🔍 Search files or folders... (#tag, type:pdf)"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            style={{ maxWidth: 300, marginTop: 8 }}
-          />
         </div>
 
         {/* Folder List */}
         {Array.isArray(childFolders) && (
           <div className="d-flex flex-wrap mt-3">
             {childFolders
-        .filter((f) => isNameMatch(f.name) && isTagMatch(f))
-        .map((child) => {
-          const folderInstance = FolderClass.fromObject(child); // convert to Folder instance
-          folderInstance.highlightedName = highlightText(child.name, searchQuery); // attach highlighted name
-          return (
-            <div key={child.id} style={{ maxWidth: "200px" }} className="p-2">
-              <Folder folder={folderInstance} />
-            </div>
-          );
-        })}
+              .filter((f) => isNameMatch(f.name) && isTagMatch(f))
+              .map((child) => {
+                const folderInstance = FolderClass.fromObject(child); // convert to Folder instance
+                folderInstance.highlightedName = highlightText(
+                  child.name,
+                  searchQuery
+                ); // attach highlighted name
+                return (
+                  <div
+                    key={child.id}
+                    style={{ maxWidth: "200px" }}
+                    className="p-2"
+                  >
+                    <Folder folder={folderInstance} />
+                  </div>
+                );
+              })}
           </div>
         )}
 
@@ -114,14 +113,16 @@ export default function Dashboard() {
                   isTagMatch(file)
               )
               .map((child) => (
-                <div key={child.id} style={{ maxWidth: "200px" }} className="p-2">
+                <div
+                  key={child.id}
+                  style={{ maxWidth: "200px" }}
+                  className="p-2"
+                >
                   <File
                     file={{
                       ...child,
                       highlightedName: highlightText(child.name, searchQuery),
                     }}
-                    onDelete={handleDelete}
-                    onUpdate={handleUpdate}
                   />
                 </div>
               ))}

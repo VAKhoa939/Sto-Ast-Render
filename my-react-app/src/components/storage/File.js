@@ -1,5 +1,12 @@
 import React, { useState } from "react";
-import { faFile, faFileAlt, faSearch, faTrash, faEdit, faSave } from "@fortawesome/free-solid-svg-icons";
+import {
+  faFile,
+  faFileAlt,
+  faSearch,
+  faTrash,
+  faEdit,
+  faSave,
+} from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { Modal, Button, Form } from "react-bootstrap";
 //import { ref, remove, update } from "../../../src/firebase";
@@ -37,8 +44,8 @@ const handleUpdateFirebase = async (fileId, updatedName, updatedContent, current
   }
 };
 */
-export default function File({ file, onDelete, onUpdate }) {
-  const { currentUser } = useAuth();
+export default function File({ file }) {
+  const { currentUser, getIdToken } = useAuth();
   const fileObj = new FileClass({ ...file, user: currentUser });
 
   const [showModal, setShowModal] = useState(false);
@@ -57,7 +64,6 @@ export default function File({ file, onDelete, onUpdate }) {
     if (window.confirm("Are you sure you want to delete this file?")) {
       const result = await fileObj.delete();
       if (result.success) {
-        onDelete?.(file);
         setShowModal(false);
       } else {
         alert("Error deleting file.");
@@ -73,7 +79,6 @@ export default function File({ file, onDelete, onUpdate }) {
 
     const result = await fileObj.update(updatedFileName, fileContent);
     if (result.success) {
-      onUpdate?.({ ...file, name: updatedFileName, content: btoa(fileContent) });
       setIsEditing(false);
     } else {
       alert("Error updating file.");
@@ -81,8 +86,12 @@ export default function File({ file, onDelete, onUpdate }) {
   };
 
   const fetchAIResponse = async (task, isImage = false) => {
+    const token = await getIdToken();
+    if (!token) {
+      throw new Error("User not authenticated");
+    }
     setLoading(true);
-    const response = await fileObj.fetchAI(task, isImage);
+    const response = await fileObj.fetchAI(token, task, isImage);
     setAiResponse(response.result);
     setLoading(false);
   };
@@ -141,11 +150,17 @@ export default function File({ file, onDelete, onUpdate }) {
                     style={{ maxWidth: "100%", maxHeight: "400px" }}
                   />
                   <div className="mt-3 d-flex flex-wrap gap-2">
-                    <Button variant="primary" onClick={() => fetchAIResponse("describe", true)}>
+                    <Button
+                      variant="primary"
+                      onClick={() => fetchAIResponse("describe", true)}
+                    >
                       <FontAwesomeIcon icon={faFileAlt} className="me-2" />
                       Describe Image
                     </Button>
-                    <Button variant="secondary" onClick={() => fetchAIResponse("objects", true)}>
+                    <Button
+                      variant="secondary"
+                      onClick={() => fetchAIResponse("objects", true)}
+                    >
                       <FontAwesomeIcon icon={faSearch} className="me-2" />
                       Identify Objects
                     </Button>
@@ -166,11 +181,17 @@ export default function File({ file, onDelete, onUpdate }) {
                     disabled={!isEditing}
                   />
                   <div className="mt-3 d-flex flex-wrap gap-2">
-                    <Button variant="primary" onClick={() => fetchAIResponse("summarize")}>
+                    <Button
+                      variant="primary"
+                      onClick={() => fetchAIResponse("summarize")}
+                    >
                       <FontAwesomeIcon icon={faFileAlt} className="me-2" />
                       Summarize
                     </Button>
-                    <Button variant="secondary" onClick={() => fetchAIResponse("keywords")}>
+                    <Button
+                      variant="secondary"
+                      onClick={() => fetchAIResponse("keywords")}
+                    >
                       <FontAwesomeIcon icon={faSearch} className="me-2" />
                       Find Keywords
                     </Button>
@@ -192,7 +213,13 @@ export default function File({ file, onDelete, onUpdate }) {
                   </div>
                 </>
               ) : (
-                <p>{fileContent}</p>
+                <>
+                  <p>{fileContent}</p>
+                  <Button variant="danger" onClick={handleDelete}>
+                    <FontAwesomeIcon icon={faTrash} className="me-2" />
+                    Delete
+                  </Button>
+                </>
               )}
               {aiResponse && (
                 <div className="mt-3">
