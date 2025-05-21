@@ -99,6 +99,29 @@ export function useFolder(folderId = null, folder = null) {
       });
   }, [folderId]);
 
+  // --- Fetch child folders from Firestore ---
+  // This effect fetches child folders from Firestore when the folderId or currentUser changes.
+  useEffect(() => {
+    // Construct the query for Firestore child folders
+    const q = query(
+      database.folders, // The reference to the 'folders' collection
+      where("parentId", "==", folderId), // Filter by parentId
+      where("userId", "==", currentUser.uid), // Filter by userId
+      orderBy("createdAt") // Order by createdAt field
+    );
+
+    // Set up the listener for real-time updates
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      dispatch({
+        type: ACTIONS.SET_CHILD_FOLDERS,
+        payload: { childFolders: snapshot.docs.map(database.formatDoc) },
+      });
+    });
+
+    // Cleanup the listener when the component unmounts or the folderId or currentUser changes
+    return () => unsubscribe();
+  }, [folderId, currentUser.uid]);
+
   // --- Fetch files from Firebase Realtime Database ---
   // This effect fetches files from Firebase Realtime Database when the folderId or currentUser changes.
   useEffect(() => {
