@@ -3,6 +3,7 @@ const {
   updateFolderInDB,
   deleteFolderAndFilesFromDB,
   getFolderByIdFromDB: readFolderById,
+  getFoldersByParentIdFromDB,
 } = require("../DAOs/FolderDAO");
 const { db } = require("../firebase-admin-setup");
 
@@ -76,7 +77,10 @@ module.exports = {
   fetchFolderById: async (req, res) => {
     const { folderId } = req.params;
     try {
+      console.log("Fetching folder with ID:", folderId);
+
       const folder = await readFolderById(folderId);
+
       res.json({ folder: { id: doc.id, ...doc.data() } });
     } catch (error) {
       console.error("Fetch folder error:", error.message);
@@ -92,23 +96,10 @@ module.exports = {
     const { uid: userId } = req.decodedToken;
 
     try {
-      console.log(
-        "Fetching folders for user:",
-        userId,
-        "with parentId:",
-        parentId
-      );
+      console.log("Fetching folders with parentId:", parentId);
 
-      const foldersRef = db
-        .collection("folders")
-        .where("userId", "==", userId)
-        .where("parentId", "==", parentId || null);
+      const folders = await getFoldersByParentIdFromDB(parentId, userId);
 
-      const snapshot = await foldersRef.get();
-      const folders = snapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      }));
       res.json({ folders });
     } catch (error) {
       console.error("Error fetching folders:", error.message);

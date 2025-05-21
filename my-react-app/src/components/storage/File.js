@@ -62,8 +62,23 @@ export default function File({ file }) {
 
   const handleDelete = async () => {
     if (window.confirm("Are you sure you want to delete this file?")) {
-      const result = await fileObj.delete();
-      if (result.success) {
+      const token = await getIdToken();
+      if (!token) {
+        alert("User not authenticated");
+        return;
+      }
+      const response = await fetch(
+        `${process.env.REACT_APP_BACKEND_URL}/api/files/${fileObj.id}`,
+        {
+          method: "DELETE",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+      if (response.ok) {
+        alert("File deleted successfully.");
         setShowModal(false);
       } else {
         alert("Error deleting file.");
@@ -77,8 +92,28 @@ export default function File({ file }) {
     if (!updatedFileName.trim()) return alert("File name cannot be empty.");
     if (!fileContent.trim()) return alert("File content cannot be empty.");
 
-    const result = await fileObj.update(updatedFileName, fileContent);
-    if (result.success) {
+    const token = await getIdToken();
+    if (!token) {
+      alert("User not authenticated");
+      return;
+    }
+    const response = await fetch(
+      `${process.env.REACT_APP_BACKEND_URL}/api/files/${fileObj.id}`,
+      {
+        method: "PUT",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          name: updatedFileName.trim(),
+          content: btoa(fileContent),
+        }),
+      }
+    );
+
+    if (response.ok) {
+      console.log("File updated successfully.");
       setIsEditing(false);
     } else {
       alert("Error updating file.");
@@ -90,9 +125,33 @@ export default function File({ file }) {
     if (!token) {
       throw new Error("User not authenticated");
     }
+
+    let result = "Processing...";
     setLoading(true);
-    const response = await fileObj.fetchAI(token, task, isImage);
-    setAiResponse(response.result);
+    try {
+      const response = await fetch(
+        `${process.env.REACT_APP_BACKEND_URL}/api/ai`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            input: isImage ? fileObj.content : fileObj.decodeContent(),
+            task,
+            isImage,
+            mimeType: fileObj.mimeType,
+          }),
+        }
+      );
+      const data = await response.json();
+      result = data.result || "No result returned.";
+    } catch (error) {
+      console.error("Error fetching AI response:", error);
+      result = "Error processing content with AI.";
+    }
+    setAiResponse(result);
     setLoading(false);
   };
 

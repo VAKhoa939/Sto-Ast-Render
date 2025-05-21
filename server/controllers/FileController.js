@@ -1,26 +1,27 @@
-const { admin, db, remove, update } = require("../firebase-admin-setup");
+const {
+  uploadFile,
+  updateFileInDB,
+  deleteFileFromDB,
+  getFileByFolderPathFromDB,
+  getFilesByFolderIdFromDB,
+} = require("../DAOs/FileDAO");
 
 module.exports = {
   //Function to upload a file
   uploadFile: async (req, res) => {
     const { name, content, path, folderId } = req.body;
-    const user = req.user;
-    console.log("Received body:", req.body);
+    const { uid: userId } = req.decodedToken;
+
     if (!name || !content || !path || !folderId) {
       return res.status(400).json({ error: "Missing required fields" });
     }
 
     try {
-      const filePath = `files/${user.uid}/${path}`;
+      console.log("Uploading file:", name);
 
-      await admin.database().ref(filePath).set({
-        name,
-        content, // Base64 string
-        path,
-        folderId,
-        userId: user.uid,
-        createdAt: admin.database.ServerValue.TIMESTAMP,
-      });
+      await uploadFile(name.trim(), content, path, folderId, userId);
+
+      console.log("File uploaded successfully");
 
       res.status(200).json({ message: "File uploaded successfully" });
     } catch (err) {
@@ -31,8 +32,9 @@ module.exports = {
 
   // Function to update a file
   updateFile: async (req, res) => {
-    const { userId, fileId } = req.params;
+    const { fileId } = req.params;
     const { name, content } = req.body;
+    const { uid: userId } = req.decodedToken;
 
     if (!name || !content) {
       return res
@@ -41,10 +43,12 @@ module.exports = {
     }
 
     try {
-      await update(`files/${userId}/${fileId}`, {
-        name: name.trim(),
-        content,
-      });
+      console.log("Updating file with ID:", fileId);
+
+      await updateFileInDB(userId, fileId, name.trim(), content);
+
+      console.log("File updated successfully");
+
       res.json({ success: true });
     } catch (error) {
       console.error("Error updating file:", error);
@@ -54,10 +58,16 @@ module.exports = {
 
   // Function to delete a file
   deleteFile: async (req, res) => {
-    const { userId, fileId } = req.params;
+    const { fileId } = req.params;
+    const { uid: userId } = req.decodedToken;
 
     try {
-      await realtimeDatabase.ref(`files/${userId}/${fileId}`).remove();
+      console.log("Deleting file with ID:", fileId);
+
+      await deleteFileFromDB(userId, fileId);
+
+      console.log("File deleted successfully");
+
       res.json({ success: true });
     } catch (error) {
       console.error("Error deleting file:", error);
@@ -69,16 +79,36 @@ module.exports = {
   fetchFilesByFolderPath: async (req, res) => {
     const { folderPath } = req.query;
     const { uid: userId } = req.decodedToken;
+
     if (!folderPath)
       return res.status(400).json({ error: "Missing folderPath or userId" });
 
     try {
-      const query = db
-        .collection("files")
-        .where("folderPath", "==", folderPath)
-        .where("userId", "==", userId);
-      const snapshot = await query.get();
-      const files = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+      console.log("Fetching files in folder:", folderPath);
+
+      const files = await getFileByFolderPathFromDB(folderPath, userId);
+
+      console.log("Files fetched successfully");
+
+      res.json({ files });
+    } catch (error) {
+      console.error("Fetch files error:", error.message);
+      res.status(500).json({ error: "Failed to fetch files" });
+    }
+  },
+
+  // Function to fetch files by folderId
+  fetchFilesByFolderId: async (req, res) => {
+    const { folderId } = req.params;
+    const { uid: userId } = req.decodedToken;
+
+    try {
+      console.log("Fetching files in folder with ID:", folderId);
+
+      const files = await getFilesByFolderIdFromDB(folderId, userId);
+
+      console.log("Files fetched successfully");
+
       res.json({ files });
     } catch (error) {
       console.error("Fetch files error:", error.message);

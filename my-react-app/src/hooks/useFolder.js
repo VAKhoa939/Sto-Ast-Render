@@ -99,94 +99,45 @@ export function useFolder(folderId = null, folder = null) {
       });
   }, [folderId]);
 
-  // --- Fetch child folders from Firestore ---
-  // This effect fetches child folders from Firestore when the folderId or currentUser changes.
-  useEffect(() => {
-    // Construct the query for Firestore child folders
-    const q = query(
-      database.folders, // The reference to the 'folders' collection
-      where("parentId", "==", folderId), // Filter by parentId
-      where("userId", "==", currentUser.uid), // Filter by userId
-      orderBy("createdAt") // Order by createdAt field
-    );
-
-    // Set up the listener for real-time updates
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      dispatch({
-        type: ACTIONS.SET_CHILD_FOLDERS,
-        payload: { childFolders: snapshot.docs.map(database.formatDoc) },
-      });
-    });
-
-    // Cleanup the listener when the component unmounts or the folderId or currentUser changes
-    return () => unsubscribe();
-  }, [folderId, currentUser.uid]);
-
   // --- Fetch files from Firebase Realtime Database ---
   // This effect fetches files from Firebase Realtime Database when the folderId or currentUser changes.
-  // It listens for changes in the specified folder path and updates the state accordingly.
   useEffect(() => {
-    // Ensure currentUser and folderId are available
-    if (!currentUser?.uid) return;
-
-    console.log("User UID:", currentUser.uid);
-    console.log("Folder ID:", folderId);
-
-    // Check if we are dealing with the root folder (folderId is null)
-    const folderPath =
-      folderId === null
-        ? `files/${currentUser.uid}`
-        : `files/${currentUser.uid}/${folderId}`;
-
-    // Reference to the Firebase Realtime Database location for files
-    const filesRef = ref(realtimeDatabase, folderPath);
-    console.log("Files Ref Path:", filesRef.toString());
-
-    const unsubscribe = onValue(filesRef, (snapshot) => {
-      const filesData = snapshot.val();
-      if (filesData) {
-        // Format files with path and render children files based on path
-        const formattedFiles = Object.keys(filesData).map((key) => {
-          const file = filesData[key];
-
-          // Add path to the file object if it's missing
-          if (!file.path) {
-            file.path = key; // Use the key as the path if it's not available
+    const fetchFiles = async () => {
+      try {
+        const token = await getIdToken();
+        if (!token) return;
+        const res = await fetch(
+          `${process.env.REACT_APP_BACKEND_URL}/api/files/${folderId}`,
+          {
+            method: "GET",
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
           }
+        );
+        const data = await res.json();
 
-          return {
-            id: key,
-            ...file, // Include other file properties like name, url, etc.
-          };
-        });
-
-        console.log("Formatted Files with Path:", formattedFiles); // Log files with their paths
-
-        // Dispatch formatted files to the state
         dispatch({
           type: ACTIONS.SET_CHILD_FILES,
-          payload: { childFiles: formattedFiles },
+          payload: { childFiles: data.files || [] },
         });
-      } else {
-        // If no files are found, set an empty array
+      } catch (error) {
+        console.error("Failed to fetch files:", error);
         dispatch({
           type: ACTIONS.SET_CHILD_FILES,
           payload: { childFiles: [] },
         });
       }
-    });
+    };
 
-    // Cleanup listener when folderId or currentUser changes
-    return () => unsubscribe();
-  }, [folderId, currentUser]);
+    fetchFiles();
+  }, [folderId, getIdToken]);
 
   // --- Fetch folders/files from the backend ---
   // This effect fetches folders and files from the backend when the component mounts
   // and when the folderId or currentUser changes.
   useEffect(() => {
-    async function fetchFromBackend() {
-      if (!currentUser) return;
-
+    async function fetchFoldersAndFiles() {
       const token = await getIdToken();
       if (!token) return;
 
@@ -217,8 +168,8 @@ export function useFolder(folderId = null, folder = null) {
       }
     }
 
-    fetchFromBackend();
-  }, [folderId, currentUser, getIdToken]);
+    fetchFoldersAndFiles();
+  }, [folderId, getIdToken]);
 
   return state;
 }

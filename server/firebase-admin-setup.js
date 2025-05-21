@@ -24,7 +24,6 @@ admin.initializeApp({
 const auth = admin.auth();
 const firestore = admin.firestore();
 const realtimeDatabase = admin.database();
-const storage = admin.storage().bucket();
 
 // Realtime DB helpers
 const ref = (path) => realtimeDatabase.ref(path);
@@ -38,7 +37,7 @@ module.exports = {
   verifyIdToken: auth.verifyIdToken,
   db: firestore,
   realtimeDatabase,
-  storage,
+  ServerValue: admin.database.ServerValue,
   FieldValue: admin.firestore.FieldValue,
   ref,
   remove,

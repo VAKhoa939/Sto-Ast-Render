@@ -19,6 +19,7 @@ const {
   fetchFilesByFolderPath,
   deleteFile,
   updateFile,
+  fetchFilesByFolderId,
 } = require("./controllers/FileController");
 
 // Express setup
@@ -44,9 +45,10 @@ app.get("/api/folders", fetchFoldersByParentId); // Fetch folders by parentId
 
 // --- File API ---
 app.post("/api/file", uploadFile); // Upload file
-app.put("/api/files/:userId/:fileId", updateFile); // Update file
-app.delete("/api/files/:userId/:fileId", deleteFile); // Delete file
+app.put("/api/files/:fileId", updateFile); // Update file
+app.delete("/api/files/:fileId", deleteFile); // Delete file
 app.get("/api/files", fetchFilesByFolderPath); //Fetch files by folderPath
+app.get("/api/files/:folderId", fetchFilesByFolderId); //Fetch files by folderPath
 
 // --- HTTPS Server ---
 if (process.env.HTTPS === "true") {

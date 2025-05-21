@@ -13,7 +13,6 @@ module.exports = {
       });
     } catch (error) {
       console.error("Error adding folder:", error);
-      throw error;
     }
   },
 
@@ -27,7 +26,6 @@ module.exports = {
       });
     } catch (error) {
       console.error("Error updating folder:", error);
-      throw error;
     }
   },
 
@@ -55,7 +53,6 @@ module.exports = {
       await batch.commit();
     } catch (error) {
       console.error("Error deleting folder:", error);
-      throw error;
     }
   },
 
@@ -69,7 +66,20 @@ module.exports = {
       return { id: doc.id, ...doc.data() };
     } catch (error) {
       console.error("Error fetching folder:", error);
-      throw error;
+    }
+  },
+
+  // Function to fetch all folders by parentId and userId
+  getFoldersByParentIdFromDB: async (parentId, userId) => {
+    try {
+      const query = db
+        .collection("folders")
+        .where("parentId", "==", parentId)
+        .where("userId", "==", userId);
+      const snapshot = await query.get();
+      return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+    } catch (error) {
+      console.error("Error fetching folders:", error);
     }
   },
 };

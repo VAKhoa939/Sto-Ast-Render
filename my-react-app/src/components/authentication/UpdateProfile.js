@@ -1,40 +1,42 @@
-import React, { useRef, useState } from "react"
-import { Form, Button, Card, Alert } from "react-bootstrap"
-import { useAuth } from "../../contexts/AuthContext"
-import { Link, useNavigate } from "react-router-dom"
-import CenteredContainer from "./CenteredContainer"
+import React, { useRef, useState } from "react";
+import { Form, Button, Card, Alert } from "react-bootstrap";
+import { useAuth } from "../../contexts/AuthContext";
+import { Link, useNavigate } from "react-router-dom";
+import CenteredContainer from "./CenteredContainer";
 
 export default function UpdateProfile() {
-  const emailRef = useRef()
-  const passwordRef = useRef()
-  const passwordConfirmRef = useRef()
-  const { currentUser, updateUser } = useAuth()
-  const [error, setError] = useState("")
-  const [loading, setLoading] = useState(false)
-  const navigate = useNavigate()
+  const emailRef = useRef();
+  const passwordRef = useRef();
+  const passwordConfirmRef = useRef();
+  const { currentUser, updateUser } = useAuth();
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
 
   function handleSubmit(e) {
-    e.preventDefault()
+    e.preventDefault();
     if (passwordRef.current.value !== passwordConfirmRef.current.value) {
-      return setError("Passwords do not match")
+      return setError("Passwords do not match");
     }
 
-    const promises = []
-    setLoading(true)
-    setError("")
+    const promises = [];
+    setLoading(true);
+    setError("");
 
-    promises.push(updateUser(emailRef.current.value, passwordRef.current.value))
+    promises.push(
+      updateUser(emailRef.current.value, passwordRef.current.value)
+    );
 
     Promise.all(promises)
       .then(() => {
-        navigate("/user")
+        navigate("/user");
       })
       .catch(() => {
-        setError("Failed to update account")
+        setError("Failed to update account");
       })
       .finally(() => {
-        setLoading(false)
-      })
+        setLoading(false);
+      });
   }
 
   return (
@@ -51,6 +53,7 @@ export default function UpdateProfile() {
                 ref={emailRef}
                 required
                 defaultValue={currentUser.email}
+                enabled={false}
               />
             </Form.Group>
             <Form.Group id="password">
@@ -79,5 +82,5 @@ export default function UpdateProfile() {
         <Link to="/user">Cancel</Link>
       </div>
     </CenteredContainer>
-  )
+  );
 }

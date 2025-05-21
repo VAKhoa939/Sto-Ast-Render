@@ -12,7 +12,11 @@ export class FileClass {
   }
 
   get isImage() {
-    return this.name?.endsWith("_png") || this.name?.endsWith("_jpg") || this.name?.endsWith("_jpeg");
+    return (
+      this.name?.endsWith("_png") ||
+      this.name?.endsWith("_jpg") ||
+      this.name?.endsWith("_jpeg")
+    );
   }
 
   get isText() {
@@ -21,7 +25,8 @@ export class FileClass {
 
   get mimeType() {
     if (this.name.endsWith("_png")) return "image/png";
-    if (this.name.endsWith("_jpg") || this.name.endsWith("_jpeg")) return "image/jpeg";
+    if (this.name.endsWith("_jpg") || this.name.endsWith("_jpeg"))
+      return "image/jpeg";
     return "image/jpeg";
   }
 
@@ -34,48 +39,24 @@ export class FileClass {
     }
   }
 
-  async delete() {
-    const fileRef = ref(this.db, `files/${this.user.uid}/${this.id}`);
-    try {
-      await remove(fileRef);
-      return { success: true };
-    } catch (error) {
-      console.error("Error deleting file:", error);
-      return { success: false, error };
-    }
-  }
-
-  async update(newName, newContent) {
-    const fileRef = ref(this.db, `files/${this.user.uid}/${this.id}`);
-    try {
-      await update(fileRef, {
-        name: newName.trim(),
-        content: btoa(newContent),
-      });
-      this.name = newName.trim();
-      this.content = btoa(newContent);
-      return { success: true };
-    } catch (error) {
-      console.error("Error updating file:", error);
-      return { success: false, error };
-    }
-  }
-
   async fetchAI(token, task, isImageRequest = false) {
     try {
-      const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/ai`, {
-        method: "POST",
-        headers: { 
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json", 
-        },
-        body: JSON.stringify({
-          input: isImageRequest ? this.content : this.decodeContent(),
-          task,
-          isImage: isImageRequest,
-          mimeType: this.mimeType,
-        }),
-      });
+      const response = await fetch(
+        `${process.env.REACT_APP_BACKEND_URL}/api/ai`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            input: isImageRequest ? this.content : this.decodeContent(),
+            task,
+            isImage: isImageRequest,
+            mimeType: this.mimeType,
+          }),
+        }
+      );
       const data = await response.json();
       return { success: true, result: data.result || "No result returned." };
     } catch (error) {
