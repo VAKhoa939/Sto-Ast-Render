@@ -9,8 +9,6 @@ import {
   orderBy,
   onSnapshot,
 } from "firebase/firestore";
-import { realtimeDatabase } from "../firebase"; // Import Realtime Database
-import { ref, onValue } from "firebase/database";
 
 const ACTIONS = {
   SELECT_FOLDER: "select-folder",

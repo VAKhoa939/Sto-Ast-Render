@@ -127,7 +127,8 @@ export default function File({ file, onChange }) {
       if (response.ok) {
         console.log("File updated successfully.");
         setIsEditing(false);
-        //onChange();
+        setShowModal(false);
+        onChange();
       } else {
         alert("Error updating file.");
       }
@@ -228,20 +229,6 @@ export default function File({ file, onChange }) {
                     style={{ maxWidth: "100%", maxHeight: "400px" }}
                   />
                   <div className="mt-3 d-flex flex-wrap gap-2">
-                    <Button
-                      variant="primary"
-                      onClick={() => fetchAIResponse("describe", true)}
-                    >
-                      <FontAwesomeIcon icon={faFileAlt} className="me-2" />
-                      Describe Image
-                    </Button>
-                    <Button
-                      variant="secondary"
-                      onClick={() => fetchAIResponse("objects", true)}
-                    >
-                      <FontAwesomeIcon icon={faSearch} className="me-2" />
-                      Identify Objects
-                    </Button>
                     <Button variant="danger" onClick={handleDelete}>
                       <FontAwesomeIcon icon={faTrash} className="me-2" />
                       Delete

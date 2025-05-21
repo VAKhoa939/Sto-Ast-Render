@@ -1,4 +1,4 @@
-import { getDatabase, ref, remove, update } from "firebase/database";
+import { getDatabase } from "firebase/database";
 
 export class FileClass {
   constructor({ id, name, content, path, createdAt, user }) {

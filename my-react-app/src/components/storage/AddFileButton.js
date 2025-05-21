@@ -81,40 +81,42 @@ export default function AddFileButton({ currentFolder, onAdd }) {
   }
 
   return (
-    <div>
-      <label className="btn btn-outline-success btn-sm m-0 mr-2">
-        <FontAwesomeIcon icon={faFileArrowUp} style={{ fontSize: "2rem" }} />
-        <input
-          type="file"
-          onChange={handleUpload}
-          style={{ opacity: 0, position: "absolute", left: "-9999px" }}
-        />
-      </label>
+    <div className="d-flex align-items-center justify-content-between flex-wrap">
+      <div className="d-flex align-items-center flex-grow-1">
+        <label className="btn btn-outline-success btn-sm m-0 mr-2">
+          <FontAwesomeIcon icon={faFileArrowUp} style={{ fontSize: "2rem" }} />
+          <input
+            type="file"
+            onChange={handleUpload}
+            style={{ opacity: 0, position: "absolute", left: "-9999px" }}
+          />
+        </label>
 
-      {/* Progress Bar */}
-      {isUploading && (
-        <div style={{ marginTop: "10px" }}>
-          <div
-            style={{
-              width: "100%",
-              backgroundColor: "#f3f3f3",
-              borderRadius: "4px",
-            }}
-          >
+        {/* Progress Bar */}
+        {isUploading && (
+          <div style={{ marginTop: "10px" }}>
             <div
               style={{
-                width: `${uploadProgress}%`,
-                height: "10px",
-                backgroundColor: "#4caf50",
+                width: "100%",
+                backgroundColor: "#f3f3f3",
                 borderRadius: "4px",
               }}
-            ></div>
+            >
+              <div
+                style={{
+                  width: `${uploadProgress}%`,
+                  height: "10px",
+                  backgroundColor: "#4caf50",
+                  borderRadius: "4px",
+                }}
+              ></div>
+            </div>
+            <p style={{ fontSize: "0.9rem", margin: "5px 0 0", color: "#555" }}>
+              {uploadProgress}% uploaded
+            </p>
           </div>
-          <p style={{ fontSize: "0.9rem", margin: "5px 0 0", color: "#555" }}>
-            {uploadProgress}% uploaded
-          </p>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }

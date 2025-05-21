@@ -5,6 +5,10 @@ module.exports = {
     const { newEmail, newPassword } = req.body;
     const { decodedToken } = req;
 
+    if (!newEmail || !newPassword) {
+      return res.status(400).json({ error: "Missing required fields" });
+    }
+
     try {
       const uid = decodedToken.uid;
 

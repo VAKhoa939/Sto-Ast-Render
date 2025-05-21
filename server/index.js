@@ -30,7 +30,7 @@ const PORT = 5000;
 require("./middlewares")(app);
 
 // --- User API ---
-app.use("/api/user", updateUser);
+app.put("/api/user", updateUser);
 
 // --- AI API ---
 app.post("/api/ai", aiAnalyse); // AI analysis, including: summarization, keyword extraction, object identification

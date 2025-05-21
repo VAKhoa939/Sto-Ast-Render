@@ -1,5 +1,4 @@
 import React from "react";
-import Signup from "./authentication/Signup";
 import Profile from "./authentication/Profile";
 import Login from "./authentication/Login";
 import Dashboard from "./storage/Dashboard";
@@ -16,7 +15,8 @@ function App() {
         <Routes>
           {/* Drive */}
           <Route
-            exact path="/"
+            exact
+            path="/"
             element={
               <PrivateRoute>
                 <Dashboard />
@@ -24,7 +24,8 @@ function App() {
             }
           />
           <Route
-            exact path="/folder/:folderId"
+            exact
+            path="/folder/:folderId"
             element={
               <PrivateRoute>
                 <Dashboard />
@@ -40,7 +41,7 @@ function App() {
               </PrivateRoute>
             }
           />
-            <Route
+          <Route
             path="/update-profile"
             element={
               <PrivateRoute>
@@ -49,7 +50,6 @@ function App() {
             }
           />
           {/* Auth */}
-          <Route path="/signup" element={<Signup />} />
           <Route path="/login" element={<Login />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
         </Routes>
