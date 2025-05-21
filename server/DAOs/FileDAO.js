@@ -19,13 +19,16 @@ module.exports = {
       });
     } catch (error) {
       console.error("Error uploading file:", error);
+      throw error;
     }
   },
 
   // Function to update a file
-  updateFileInDB: async (userId, fileId, name, content) => {
+  updateFileInDB: async (userId, filePath, name, content) => {
     try {
-      const fileRef = realtimeDatabase.ref(`files/${userId}/${fileId}`);
+      const fileRef = realtimeDatabase.ref(`files/${userId}/${filePath}`);
+
+      console.log("File reference:", fileRef);
       await fileRef.update({
         name: name.trim(),
         content,
@@ -33,15 +36,19 @@ module.exports = {
       });
     } catch (error) {
       console.error("Error updating file:", error);
+      throw error;
     }
   },
 
   // Function to delete a file
-  deleteFileFromDB: async (fileId) => {
+  deleteFileFromDB: async (userId, filePath) => {
     try {
-      return await realtimeDatabase.ref(`files/${userId}/${fileId}`).remove();
+      return await realtimeDatabase
+        .ref(`files/${userId}/${filePath}`)
+        .set(null);
     } catch (error) {
       console.error("Error deleting file:", error);
+      throw error;
     }
   },
 
@@ -57,6 +64,7 @@ module.exports = {
       return files;
     } catch (error) {
       console.error("Error fetching file by folder path:", error);
+      throw error;
     }
   },
 
@@ -80,6 +88,7 @@ module.exports = {
       return formattedFiles;
     } catch (error) {
       console.error("Error fetching files by folder ID:", error);
+      throw error;
     }
   },
 };

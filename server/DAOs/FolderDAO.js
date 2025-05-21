@@ -1,4 +1,4 @@
-const { db, FieldValue } = require("../firebase-admin-setup");
+const { db, FieldValue, formatDoc } = require("../firebase-admin-setup");
 
 module.exports = {
   // Function to create a folder
@@ -13,6 +13,7 @@ module.exports = {
       });
     } catch (error) {
       console.error("Error adding folder:", error);
+      throw error;
     }
   },
 
@@ -26,6 +27,7 @@ module.exports = {
       });
     } catch (error) {
       console.error("Error updating folder:", error);
+      throw error;
     }
   },
 
@@ -53,6 +55,7 @@ module.exports = {
       await batch.commit();
     } catch (error) {
       console.error("Error deleting folder:", error);
+      throw error;
     }
   },
 
@@ -66,6 +69,7 @@ module.exports = {
       return { id: doc.id, ...doc.data() };
     } catch (error) {
       console.error("Error fetching folder:", error);
+      throw error;
     }
   },
 
@@ -74,12 +78,13 @@ module.exports = {
     try {
       const query = db
         .collection("folders")
-        .where("parentId", "==", parentId)
+        .where("parentId", "==", parentId ?? null) // or whatever value you use for root
         .where("userId", "==", userId);
       const snapshot = await query.get();
-      return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+      return snapshot.docs.map(formatDoc);
     } catch (error) {
       console.error("Error fetching folders:", error);
+      throw error;
     }
   },
 };

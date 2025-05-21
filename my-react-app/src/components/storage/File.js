@@ -44,7 +44,7 @@ const handleUpdateFirebase = async (fileId, updatedName, updatedContent, current
   }
 };
 */
-export default function File({ file }) {
+export default function File({ file, onChange }) {
   const { currentUser, getIdToken } = useAuth();
   const fileObj = new FileClass({ ...file, user: currentUser });
 
@@ -67,20 +67,29 @@ export default function File({ file }) {
         alert("User not authenticated");
         return;
       }
-      const response = await fetch(
-        `${process.env.REACT_APP_BACKEND_URL}/api/files/${fileObj.id}`,
-        {
-          method: "DELETE",
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
+      try {
+        const response = await fetch(
+          `${process.env.REACT_APP_BACKEND_URL}/api/files/${fileObj.id}`,
+          {
+            method: "DELETE",
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              filePath: fileObj.path,
+            }),
+          }
+        );
+        if (response.ok) {
+          alert("File deleted successfully.");
+          setShowModal(false);
+          onChange();
+        } else {
+          alert("Error deleting file.");
         }
-      );
-      if (response.ok) {
-        alert("File deleted successfully.");
-        setShowModal(false);
-      } else {
+      } catch (error) {
+        console.error("Error deleting file:", error);
         alert("Error deleting file.");
       }
     }
@@ -97,25 +106,33 @@ export default function File({ file }) {
       alert("User not authenticated");
       return;
     }
-    const response = await fetch(
-      `${process.env.REACT_APP_BACKEND_URL}/api/files/${fileObj.id}`,
-      {
-        method: "PUT",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          name: updatedFileName.trim(),
-          content: btoa(fileContent),
-        }),
-      }
-    );
 
-    if (response.ok) {
-      console.log("File updated successfully.");
-      setIsEditing(false);
-    } else {
+    try {
+      const response = await fetch(
+        `${process.env.REACT_APP_BACKEND_URL}/api/files/${fileObj.id}`,
+        {
+          method: "PUT",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            name: updatedFileName.trim(),
+            content: btoa(fileContent),
+            filePath: fileObj.path,
+          }),
+        }
+      );
+
+      if (response.ok) {
+        console.log("File updated successfully.");
+        setIsEditing(false);
+        //onChange();
+      } else {
+        alert("Error updating file.");
+      }
+    } catch (error) {
+      console.error("Error updating file:", error);
       alert("Error updating file.");
     }
   };
@@ -157,6 +174,8 @@ export default function File({ file }) {
 
   const closeModal = () => {
     setShowModal(false);
+    setUpdatedFileName("");
+    setFileContent("");
     setAiResponse("");
     setIsEditing(false);
   };

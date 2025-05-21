@@ -6,7 +6,7 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faFileArrowUp } from "@fortawesome/free-solid-svg-icons";
 import { ROOT_FOLDER } from "../../hooks/useFolder";
 
-export default function AddFileButton({ currentFolder }) {
+export default function AddFileButton({ currentFolder, onAdd }) {
   const { currentUser } = useAuth();
   const [uploadProgress, setUploadProgress] = useState(0); // State to track progress
   const [isUploading, setIsUploading] = useState(false); // State to check upload status
@@ -27,11 +27,18 @@ export default function AddFileButton({ currentFolder }) {
 
       const filePath =
         currentFolder === ROOT_FOLDER
-          ? `${currentFolder.path.map((folder) => folder.id).join("/")}/${sanitizedFileName}`
-          : `${currentFolder.path.map((folder) => folder.id).join("/")}/${currentFolder.id}/${sanitizedFileName}`;
+          ? `${currentFolder.path
+              .map((folder) => folder.id)
+              .join("/")}/${sanitizedFileName}`
+          : `${currentFolder.path.map((folder) => folder.id).join("/")}/${
+              currentFolder.id
+            }/${sanitizedFileName}`;
 
       // Reference to the Realtime Database
-      const fileRef = ref(realtimeDatabase, `files/${currentUser.uid}/${filePath}`);
+      const fileRef = ref(
+        realtimeDatabase,
+        `files/${currentUser.uid}/${filePath}`
+      );
 
       // Start the upload process
       setIsUploading(true);
@@ -57,10 +64,12 @@ export default function AddFileButton({ currentFolder }) {
           path: filePath,
           createdAt: serverTimestamp(),
           folderId: currentFolder.id,
-        }).catch((error) => {
-          console.error("Error uploading file:", error);
-          setIsUploading(false);
-        });
+        })
+          .catch((error) => {
+            console.error("Error uploading file:", error);
+            setIsUploading(false);
+          })
+          .finally(onAdd); // Call onAdd after upload
       }, 2000); // Simulate some delay
     };
 
@@ -85,7 +94,13 @@ export default function AddFileButton({ currentFolder }) {
       {/* Progress Bar */}
       {isUploading && (
         <div style={{ marginTop: "10px" }}>
-          <div style={{ width: "100%", backgroundColor: "#f3f3f3", borderRadius: "4px" }}>
+          <div
+            style={{
+              width: "100%",
+              backgroundColor: "#f3f3f3",
+              borderRadius: "4px",
+            }}
+          >
             <div
               style={{
                 width: `${uploadProgress}%`,

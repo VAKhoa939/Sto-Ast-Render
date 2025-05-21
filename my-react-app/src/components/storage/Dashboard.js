@@ -13,7 +13,8 @@ import { FolderClass } from "../classes/FolderClass";
 
 export default function Dashboard() {
   const { folderId } = useParams();
-  const { folder, childFolders, childFiles } = useFolder(folderId);
+  const { folder, childFolders, childFiles, triggerRefresh } =
+    useFolder(folderId);
 
   const [showChatbot, setShowChatbot] = useState(false);
   const [searchQuery, setSearchQuery] = useState(""); // ✅ make it string!
@@ -66,7 +67,7 @@ export default function Dashboard() {
           <div className="d-flex align-items-center flex-grow-1">
             <FolderBreadcrumbs currentFolder={folder} />
             <CreateFolderButton currentFolder={folder} />
-            <AddFileButton currentFolder={folder} />
+            <AddFileButton currentFolder={folder} onAdd={triggerRefresh} />
             <Form.Control
               type="text"
               placeholder="🔍 Search files or folders... (#tag, type:pdf)"
@@ -81,7 +82,10 @@ export default function Dashboard() {
         {Array.isArray(childFolders) && (
           <div className="d-flex flex-wrap mt-3">
             {childFolders
-              .filter((f) => isNameMatch(f.name) && isTagMatch(f))
+              .filter(
+                (f) =>
+                  isNameMatch(f.name) && isTagMatch(f) && f.name !== "undefined"
+              )
               .map((child) => {
                 const folderInstance = FolderClass.fromObject(child); // convert to Folder instance
                 folderInstance.highlightedName = highlightText(
@@ -123,6 +127,7 @@ export default function Dashboard() {
                       ...child,
                       highlightedName: highlightText(child.name, searchQuery),
                     }}
+                    onChange={triggerRefresh}
                   />
                 </div>
               ))}

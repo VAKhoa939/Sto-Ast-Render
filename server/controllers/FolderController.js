@@ -100,6 +100,8 @@ module.exports = {
 
       const folders = await getFoldersByParentIdFromDB(parentId, userId);
 
+      console.log("Fetched folders:", folders);
+
       res.json({ folders });
     } catch (error) {
       console.error("Error fetching folders:", error.message);

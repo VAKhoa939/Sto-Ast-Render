@@ -17,12 +17,18 @@ const ACTIONS = {
   UPDATE_FOLDER: "update-folder",
   SET_CHILD_FOLDERS: "set-child-folders",
   SET_CHILD_FILES: "set-child-files",
+  TRIGGER_REFRESH: "trigger-refresh",
 };
 
 export const ROOT_FOLDER = { name: "Root", id: null, path: [] };
 
 function reducer(state, { type, payload }) {
   switch (type) {
+    case ACTIONS.TRIGGER_REFRESH:
+      return {
+        ...state,
+        refresh: !state.refresh,
+      };
     case ACTIONS.SELECT_FOLDER:
       return {
         folderId: payload.folderId,
@@ -56,6 +62,7 @@ export function useFolder(folderId = null, folder = null) {
     folder, // Ensures a valid folder object
     childFolders: [],
     childFiles: [],
+    refresh: false,
   });
 
   const { currentUser, getIdToken } = useAuth();
@@ -64,7 +71,7 @@ export function useFolder(folderId = null, folder = null) {
   // This effect updates the selected folder in the state when the folderId or folder changes.
   useEffect(() => {
     dispatch({ type: ACTIONS.SELECT_FOLDER, payload: { folderId, folder } });
-  }, [folderId, folder]);
+  }, [folderId, folder, state.refresh]);
 
   // --- Fetch folder from Firestore ---
   // This effect fetches the folder from Firestore when the folderId changes.
@@ -97,64 +104,7 @@ export function useFolder(folderId = null, folder = null) {
           payload: { folder: ROOT_FOLDER },
         });
       });
-  }, [folderId]);
-
-  // --- Fetch child folders from Firestore ---
-  // This effect fetches child folders from Firestore when the folderId or currentUser changes.
-  useEffect(() => {
-    // Construct the query for Firestore child folders
-    const q = query(
-      database.folders, // The reference to the 'folders' collection
-      where("parentId", "==", folderId), // Filter by parentId
-      where("userId", "==", currentUser.uid), // Filter by userId
-      orderBy("createdAt") // Order by createdAt field
-    );
-
-    // Set up the listener for real-time updates
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      dispatch({
-        type: ACTIONS.SET_CHILD_FOLDERS,
-        payload: { childFolders: snapshot.docs.map(database.formatDoc) },
-      });
-    });
-
-    // Cleanup the listener when the component unmounts or the folderId or currentUser changes
-    return () => unsubscribe();
-  }, [folderId, currentUser.uid]);
-
-  // --- Fetch files from Firebase Realtime Database ---
-  // This effect fetches files from Firebase Realtime Database when the folderId or currentUser changes.
-  useEffect(() => {
-    const fetchFiles = async () => {
-      try {
-        const token = await getIdToken();
-        if (!token) return;
-        const res = await fetch(
-          `${process.env.REACT_APP_BACKEND_URL}/api/files/${folderId}`,
-          {
-            method: "GET",
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }
-        );
-        const data = await res.json();
-
-        dispatch({
-          type: ACTIONS.SET_CHILD_FILES,
-          payload: { childFiles: data.files || [] },
-        });
-      } catch (error) {
-        console.error("Failed to fetch files:", error);
-        dispatch({
-          type: ACTIONS.SET_CHILD_FILES,
-          payload: { childFiles: [] },
-        });
-      }
-    };
-
-    fetchFiles();
-  }, [folderId, getIdToken]);
+  }, [folderId, state.refresh]);
 
   // --- Fetch folders/files from the backend ---
   // This effect fetches folders and files from the backend when the component mounts
@@ -192,7 +142,68 @@ export function useFolder(folderId = null, folder = null) {
     }
 
     fetchFoldersAndFiles();
-  }, [folderId, getIdToken]);
+  }, [folderId, getIdToken, currentUser.uid, state.refresh]);
 
-  return state;
+  // --- Fetch child folders from Firestore ---
+  // This effect fetches child folders from Firestore when the folderId or currentUser changes.
+  useEffect(() => {
+    // Construct the query for Firestore child folders
+    const q = query(
+      database.folders, // The reference to the 'folders' collection
+      where("parentId", "==", folderId), // Filter by parentId
+      where("userId", "==", currentUser.uid), // Filter by userId
+      orderBy("createdAt") // Order by createdAt field
+    );
+
+    // Set up the listener for real-time updates
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      dispatch({
+        type: ACTIONS.SET_CHILD_FOLDERS,
+        payload: { childFolders: snapshot.docs.map(database.formatDoc) },
+      });
+    });
+
+    // Cleanup the listener when the component unmounts or the folderId or currentUser changes
+    return () => unsubscribe();
+  }, [folderId, currentUser.uid, state.refresh]);
+
+  // --- Fetch files from Firebase Realtime Database ---
+  // This effect fetches files from Firebase Realtime Database when the folderId or currentUser changes.
+  useEffect(() => {
+    const fetchFiles = async () => {
+      try {
+        const token = await getIdToken();
+        if (!token) return;
+        const res = await fetch(
+          `${process.env.REACT_APP_BACKEND_URL}/api/files/${folderId}`,
+          {
+            method: "GET",
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+        const data = await res.json();
+
+        dispatch({
+          type: ACTIONS.SET_CHILD_FILES,
+          payload: { childFiles: data.files || [] },
+        });
+      } catch (error) {
+        console.error("Failed to fetch files:", error);
+        dispatch({
+          type: ACTIONS.SET_CHILD_FILES,
+          payload: { childFiles: [] },
+        });
+      }
+    };
+
+    fetchFiles();
+  }, [folderId, getIdToken, state.refresh]);
+
+  // Expose a triggerRefresh function
+  // This function can be called to trigger a refresh of the folder and its contents.
+  const triggerRefresh = () => dispatch({ type: ACTIONS.TRIGGER_REFRESH });
+
+  return { ...state, triggerRefresh };
 }

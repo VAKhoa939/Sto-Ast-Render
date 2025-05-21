@@ -1,9 +1,9 @@
 const {
-  uploadFile,
   updateFileInDB,
   deleteFileFromDB,
   getFileByFolderPathFromDB,
   getFilesByFolderIdFromDB,
+  uploadFileToDB,
 } = require("../DAOs/FileDAO");
 
 module.exports = {
@@ -17,9 +17,12 @@ module.exports = {
     }
 
     try {
-      console.log("Uploading file:", name);
+      console.log(
+        "Uploading file:",
+        name + "\n" + content + "\n" + path + "\n" + folderId
+      );
 
-      await uploadFile(name.trim(), content, path, folderId, userId);
+      await uploadFileToDB(name.trim(), content, path, folderId, userId);
 
       console.log("File uploaded successfully");
 
@@ -33,7 +36,7 @@ module.exports = {
   // Function to update a file
   updateFile: async (req, res) => {
     const { fileId } = req.params;
-    const { name, content } = req.body;
+    const { name, content, filePath } = req.body;
     const { uid: userId } = req.decodedToken;
 
     if (!name || !content) {
@@ -43,9 +46,12 @@ module.exports = {
     }
 
     try {
-      console.log("Updating file with ID:", fileId);
+      console.log(
+        "Updating file:",
+        fileId + "\n" + name + "\n" + content + "\n" + filePath
+      );
 
-      await updateFileInDB(userId, fileId, name.trim(), content);
+      await updateFileInDB(userId, filePath, name.trim(), content);
 
       console.log("File updated successfully");
 
@@ -59,12 +65,13 @@ module.exports = {
   // Function to delete a file
   deleteFile: async (req, res) => {
     const { fileId } = req.params;
+    const { filePath } = req.body;
     const { uid: userId } = req.decodedToken;
 
     try {
-      console.log("Deleting file with ID:", fileId);
+      console.log("Deleting file:", fileId + "\n" + filePath);
 
-      await deleteFileFromDB(userId, fileId);
+      await deleteFileFromDB(userId, filePath);
 
       console.log("File deleted successfully");
 
